@@ -1,6 +1,7 @@
 """Using scielo api."""
 
 # Pyhton libraries
+from logging import log
 from pprint import pprint
 from pymongo.mongo_client import MongoClient
 from dotenv import dotenv_values
@@ -53,8 +54,10 @@ class DataScielo:
         """
         journals = scielo_client.journals(
             collection_acron)  # Journals is a generator object.
-        for journal in journals:
-            db["journals"].insert_one(journal.data)
-
+        try:
+            for journal in journals:
+                db["journals"].insert_one(journal.data)
+        except as "error":
+            log(error)
 # client=DataScielo()
 # client.get_save_journals_in_collection("col")
