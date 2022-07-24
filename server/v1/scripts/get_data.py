@@ -26,7 +26,8 @@ db = mongo_client["scielo"]
 
 
 class DataScielo:
-    """Methods to get specific data from Scielo.
+    """
+    Methods to get specific data from Scielo.
 
     Methods
     -------
@@ -57,10 +58,11 @@ class DataScielo:
         # return collection_acrons
 
     def get_save_journals_in_collection(self, collection_acron: str):
-        """Return and save journal metadata in the Mongo data base.
+        """
+        Return and save journal metadata in the Mongo data base.
 
         Parameters:
-        colection_acron: String
+                colection_acron (str): Acronym in three letters for collection
         """
         journals = scielo_client.journals(
             collection_acron
@@ -72,11 +74,14 @@ class DataScielo:
             log(e)
 
     def journals_in_collection_checker(self, collection_acron: str):
-        """Check number of journals in local database and compare with Scielo DB.
+        """
+        Check number of journals in local database and compare with Scielo DB.
 
-        Return
         Parameters:
-        collecion acron: String
+                collection_acron (str): Acronym in three letters for collection
+
+        Returns:
+                (bool): Booolean validation
         """
         number_journals_local = db["journals"].count_documents({})
         response = requests.get(
@@ -86,3 +91,21 @@ class DataScielo:
         number_journals_scielo = response["meta"]["total"]
 
         return number_journals_local == number_journals_scielo
+
+    def update_journals(self, collection_acron):
+        """
+        Update journals in a collection.
+
+        This function compares local collectiosn number with Scielo journals for same collection.
+        Retrieve data for new journal and insert into local data base.
+
+        Parameters:
+                collection_acro (str): Acronym in three letters for collection
+        """
+        if self.journals_in_collection_checker(collection_acron):
+            pass
+
+
+# client= DataScielo()
+# # returned = client.journals_in_collection_checker("col")
+# print(returned)
