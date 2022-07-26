@@ -1,7 +1,7 @@
-"""Using scielo api."""
+# coding: utf-8
+"""Author: Víctor Moreno Marín."""
 
 # Pyhton libraries
-from http import client
 from logging import log
 from pprint import pprint
 import requests
@@ -11,18 +11,15 @@ from dotenv import dotenv_values
 # Third party imports
 from articlemeta.client import RestfulClient
 
-
 # Settings and instances
 config = dotenv_values(".env")
 scielo_client = RestfulClient()
-
-URL = scielo_client.ARTICLEMETA_URL
-journal_endpoint = scielo_client.JOURNAL_ENDPOINT
-
 # mongo_client = MongoClient(host=config["HOST"], port=int(config["PORT"]))
 mongo_client = MongoClient(host=config["MONGO_URI"])
-
 db = mongo_client["scielo"]
+
+URL = scielo_client.ARTICLEMETA_URL
+JOURNAL_ENDPOINT = scielo_client.JOURNAL_ENDPOINT
 
 
 class DataScielo:
@@ -31,7 +28,7 @@ class DataScielo:
 
     Methods
     -------
-    code_colecctions():
+    code_collections():
         Return acron and original names collections from Scielo DB.
 
     get_articles_by_collection():
@@ -83,16 +80,41 @@ class DataScielo:
         Returns:
                 (bool): Booolean validation
         """
-        number_journals_local = db["journals"].count_documents({})
+        number_local_journals = db["journals"].count_documents({})
         response = requests.get(
-            URL + journal_endpoint + "/identifiers", {"collection": collection_acron}
+            URL + JOURNAL_ENDPOINT + "/identifiers", {"collection": collection_acron}
         )
         response = response.json()
-        number_journals_scielo = response["meta"]["total"]
+        number_scielo_journals = response["meta"]["total"]
 
-        return number_journals_local == number_journals_scielo
+        return number_local_journals == number_scielo_journals
 
-    def update_journals(self, collection_acron):
+    def compare_date(self, collection_acron: str) -> dict:
+        """
+        Compare dates in journals from a collection.
+
+        This function compares the field "processing_date". When field are different from SciElo database, the function returns a dictionary with issn codess of journals to update.
+
+        Returns:
+                (dict): Returnss a dictrionary with issn of journals with different "processing_date" in a collection.
+        """
+        response = requests.get(
+            URL + JOURNAL_ENDPOINT + "/identifiers", {"collection": collection_acron}
+        )
+        response = response.json()
+        remote_journals = response["objects"]
+        outdated_journals = {}
+        issn_list = []
+        for journal in remote_journals:
+            local_journal = db["journals"].find_one(
+                {"collection": collection_acron, "code": journal["code"]}
+            )
+            if local_journal["processing_date"] != journal["processing_date"]:
+                issn_list.append(journal["code"])
+            outdated_journals.update({collection_acron: issn_list})
+        return outdated_journals
+
+    def update_journals(self, collection_acron: str):
         """
         Update journals in a collection.
 
@@ -102,10 +124,10 @@ class DataScielo:
         Parameters:
                 collection_acro (str): Acronym in three letters for collection
         """
-        if self.journals_in_collection_checker(collection_acron):
-            pass
+        if not self.journals_in_collection_checker(collection_acron):
+            journals_to_update = self.compare_date(collection_acron)
 
 
-# client= DataScielo()
-# # returned = client.journals_in_collection_checker("col")
-# print(returned)
+# client= DataScielo();
+# returned = client.journals_in_collection_checker("col");
+# print(returned);
