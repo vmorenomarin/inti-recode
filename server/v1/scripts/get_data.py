@@ -2,6 +2,7 @@
 """Author: Víctor Moreno Marín."""
 
 # Pyhton libraries
+from itertools import count
 from logging import log
 from pprint import pprint
 import requests
@@ -96,7 +97,7 @@ class DataScielo:
         This function compares the field "processing_date". When field are different from SciElo database, the function returns a dictionary with issn codess of journals to update.
 
         Returns:
-                (dict): Returnss a dictrionary with issn of journals with different "processing_date" in a collection.
+                (dict): Returns a dictrionary with issn of journals with different "processing_date" in a collection.
         """
         response = requests.get(
             URL + JOURNAL_ENDPOINT + "/identifiers", {"collection": collection_acron}
@@ -114,18 +115,36 @@ class DataScielo:
             outdated_journals.update({collection_acron: issn_list})
         return outdated_journals
 
-    def update_journals(self, collection_acron: str):
+    def update_journals(self, collection_acron: str) -> int :
         """
-        Update journals in a collection.
+        Update journals in collection.
 
         This function compares local collectiosn number with Scielo journals for same collection.
         Retrieve data for new journal and insert into local data base.
 
         Parameters:
                 collection_acro (str): Acronym in three letters for collection
+
+        Returns:
+                (int): Returns number of modified journals.
         """
         if not self.journals_in_collection_checker(collection_acron):
-            journals_to_update = self.compare_date(collection_acron)
+            pass
+
+        journals_to_update = self.compare_date(collection_acron)
+        if journals_to_update:
+            count_modifications = 0
+            for journal_code in journals_to_update[collection_acron]:
+                response = requests.get(
+                    URL + JOURNAL_ENDPOINT,
+                    {"collection": collection_acron, "code": journal_code},
+                )
+                new_journal_data = response.json()[0]
+                result = db["journals"].replace_one(
+                    {"code": journal_code}, new_journal_data
+                )
+                count_modifications += 1
+        return count_modifications
 
 
 # client= DataScielo();
