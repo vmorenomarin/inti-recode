@@ -25,7 +25,7 @@ JOURNAL_ENDPOINT = scielo_client.JOURNAL_ENDPOINT
 
 class DataScielo:
     """
-    Methods to get specific data from Scielo.
+    Methods for retieve specific data from Scielo.
 
     Methods
     -------
@@ -40,6 +40,12 @@ class DataScielo:
 
     journals_in_collection_checker(self, collection_acron: str):
         Check number of journals in local database and compare with Scielo DB.
+
+    compare_date():
+        Compare dates in journals from a collection.
+
+    update_journals():
+        Update journals in collection.
     """
 
     def code_collections(self):
@@ -115,7 +121,7 @@ class DataScielo:
             outdated_journals.update({collection_acron: issn_list})
         return outdated_journals
 
-    def update_journals(self, collection_acron: str) -> int :
+    def update_journals(self, collection_acron: str) -> int:
         """
         Update journals in collection.
 
