@@ -3,7 +3,6 @@
 
 # Pyhton libraries
 from logging import log
-from pprint import pprint
 import requests
 from pymongo.mongo_client import MongoClient
 from dotenv import dotenv_values
@@ -76,15 +75,18 @@ class JournalData:
         except Exception as e:
             log(e)
 
-    def journals_in_collection_checker(self, collection_acron: str):
+    def journals_in_collection_checker(self, collection_acron: str) -> tuple:
         """
         Check number of journals in local database and compare with Scielo DB.
 
+        If number of journals for a collection in local database is same to SciElo database, the method returns true
+        and number difference in journals.
+
         Parameters:
-                collection_acron (str): Acronym in three letters for collection
+                collection_acron (str): Acronym in three letters for collection.
 
         Returns:
-                (bool): Booolean validation
+                (Tuple): Tuple with a bolean value and integer value.
         """
         number_local_journals = db["journals"].count_documents({})
         response = requests.get(
@@ -93,14 +95,19 @@ class JournalData:
         )
         response = response.json()
         number_scielo_journals = response["meta"]["total"]
+        if number_local_journals == number_scielo_journals:
+            return (True, 0)
+        difference = number_scielo_journals - number_local_journals
 
-        return number_local_journals == number_scielo_journals
+        return (False, difference)
 
     def compare_date(self, collection_acron: str) -> dict:
         """
         Compare dates in journals from a collection.
 
-        This function compares the field "processing_date". When field are different from SciElo database, the function returns a dictionary with issn codess of journals to update.
+        This function compares the field "processing_date". When field are different
+        from SciElo database, the function returns a dictionary with issn codess
+        of journals to update.
 
         Returns:
                 (dict): Returns a dictrionary with issn of journals with different "processing_date" in a collection.
@@ -137,19 +144,35 @@ class JournalData:
         Returns:
                 (int): Returns number of modified journals.
         """
-        if not self.journals_in_collection_checker(collection_acron):
-            pass  # Must be write method when local number of journals is not same in SciElo db.
+        checker = self.journals_in_collection_checker(collection_acron)
+        if not checker[0]:
+            # Retrive code from Scielo to compare with local
+            response = requests.get(
+                self.UR + self.JOURNAL_ENDPOINT, {"collection": collection_acron}
+            ).json()
+
+            journals_difference = checker[1]
+            codes = [
+                journal["code"]
+                for journal in response["objects"][-journals_difference:]
+            ]  # ISSN codes list.
+
+            for code in codes:
+                new_journal = scielo_client.journal(
+                    code=code, collection=collection_acron
+                )
+                db["journals"].insert_one(new_journal.data)
 
         journals_to_update = self.compare_date(collection_acron)
+        count_modifications = 0
         if journals_to_update:
 
-            count_modifications = 0
             for journal_code in journals_to_update[collection_acron]:
                 response = requests.get(
                     self.URL + self.JOURNAL_ENDPOINT,
                     {"collection": collection_acron, "code": journal_code},
-                )
-                new_journal_data = response.json()[0]
+                ).json()
+                new_journal_data = response[0]
                 result = db["journals"].replace_one(
                     {"code": journal_code}, new_journal_data
                 )
