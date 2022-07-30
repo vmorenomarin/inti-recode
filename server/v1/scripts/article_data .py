@@ -9,38 +9,24 @@ from dotenv import dotenv_values
 
 # Third party imports
 from articlemeta.client import RestfulClient
+from .journal_data import JournalData
 
 # Settings and instances
 config = dotenv_values(".env")
 scielo_client = RestfulClient()
+journal_client = JournalData()
 # mongo_client = MongoClient(host=config["HOST"], port=int(config["PORT"]))
 mongo_client = MongoClient(host=config["MONGO_URI"])
 db = mongo_client["scielo"]
 
 
-class JournalData:
+class ArticleData:
     """
-    Methods for retieve specific jorunal metadata from Scielo using official data.
+    Methods for retieve article metadata from Scielo usign official API.
 
     Methods
     -------
-    code_collections():
-        Return acron and original names collections from Scielo DB.
 
-    get_articles_by_collection():
-        Return and save in the Mongo data base.
-
-    get_save_journals_in_collection():
-        Return and save journal metadata in the Mongo data base.
-
-    journals_in_collection_checker(self, collection_acron():
-        Check number of journals in local database and compare with Scielo DB.
-
-    compare_date():
-        Compare dates in journals from a collection.
-
-    update_journals():
-        Update journals in collection.
     """
 
     URL = scielo_client.ARTICLEMETA_URL
