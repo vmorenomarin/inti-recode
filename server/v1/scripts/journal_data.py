@@ -115,8 +115,7 @@ class JournalData:
         response = requests.get(
             self.URL + self.JOURNAL_ENDPOINT + "/identifiers",
             {"collection": collection_acron},
-        )
-        response = response.json()
+        ).json()
         remote_journals = response["objects"]
         outdated_journals = {}
         issn_list = []
