@@ -2,6 +2,7 @@
 """Author: Víctor Moreno Marín."""
 
 # Pyhton libraries
+from http import client
 from logging import log
 import requests
 from pymongo.mongo_client import MongoClient
@@ -33,7 +34,7 @@ class JournalData:
     get_save_journals_in_collection():
         Return and save journal metadata in the Mongo data base.
 
-    journals_in_collection_checker(self, collection_acron: str):
+    journals_in_collection_checker(self, collection_acron():
         Check number of journals in local database and compare with Scielo DB.
 
     compare_date():
@@ -79,14 +80,14 @@ class JournalData:
         """
         Check number of journals in local database and compare with Scielo DB.
 
-        If number of journals for a collection in local database is same to SciElo database, the method returns true
+        If number of journals for a collection in local database is equal to SciElo journals database in same collection, the method returns true
         and number difference in journals.
 
         Parameters:
                 collection_acron (str): Acronym in three letters for collection.
 
         Returns:
-                (Tuple): Tuple with a bolean value and integer value.
+                (Tuple): Tuple with a boolean value and integer value.
         """
         number_local_journals = db["journals"].count_documents({})
         response = requests.get(
@@ -119,6 +120,8 @@ class JournalData:
         remote_journals = response["objects"]
         outdated_journals = {}
         issn_list = []
+        if not self.journals_in_collection_checker(collection_acron)[0]:
+            return self.update_journals(collection_acron)
         for journal in remote_journals:
             local_journal = db["journals"].find_one(
                 {"collection": collection_acron, "code": journal["code"]}
@@ -143,14 +146,18 @@ class JournalData:
         Returns:
                 (int): Returns number of modified journals.
         """
-        checker = self.journals_in_collection_checker(collection_acron)
+        checker = self.journals_in_collection_checker(
+            collection_acron
+        )  # Get tuple values as return of this method.
         if not checker[0]:
             # Retrive code from Scielo to compare with local
             response = requests.get(
-                self.UR + self.JOURNAL_ENDPOINT, {"collection": collection_acron}
+                self.URL + self.JOURNAL_ENDPOINT + "/identifiers",
+                {"collection": collection_acron},
             ).json()
 
             journals_difference = checker[1]
+            print(f"{journals_difference} to retrieve.")
             codes = [
                 journal["code"]
                 for journal in response["objects"][-journals_difference:]
@@ -180,6 +187,7 @@ class JournalData:
         return count_modifications
 
 
-# client= DataScielo();
-# returned = client.journals_in_collection_checker("col");
-# print(returned);
+if __name__ == "__main__":
+    journal_client = JournalData()
+    oudated = journal_client.compare_date("col")
+    print(oudated)
