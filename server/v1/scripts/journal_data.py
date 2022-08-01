@@ -186,7 +186,14 @@ class JournalData:
         return count_modifications
 
 
+<<<<<<< HEAD
 if __name__ == "__main__":
     journal_client = JournalData()
     oudated = journal_client.compare_date("col")
     print(oudated)
+=======
+# if __name__ == "__main__":
+#     journal_client = JournalData()
+#     oudated = journal_client.compare_date("col")
+#     print(oudated)
+>>>>>>> 90c6dbc4c4a787b43618950b671cf4202ca12c47
