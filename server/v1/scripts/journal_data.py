@@ -20,7 +20,7 @@ db = mongo_client["scielo"]
 
 class JournalData:
     """
-    Methods for retieve specific data from Scielo.
+    Methods for retieve specific jorunal metadata from Scielo using official data.
 
     Methods
     -------
@@ -33,7 +33,7 @@ class JournalData:
     get_save_journals_in_collection():
         Return and save journal metadata in the Mongo data base.
 
-    journals_in_collection_checker(self, collection_acron: str):
+    journals_in_collection_checker(self, collection_acron():
         Check number of journals in local database and compare with Scielo DB.
 
     compare_date():
@@ -46,20 +46,20 @@ class JournalData:
     URL = scielo_client.ARTICLEMETA_URL
     JOURNAL_ENDPOINT = scielo_client.JOURNAL_ENDPOINT
 
-    def code_collections(self):
+    def code_collections(self) -> list:
         """Return acrons and original names of the collections from Scielo DB."""
         collection_acrons = []
         for collection in scielo_client.collections():
             collection_acrons.append({collection["original_name"]: collection["acron"]})
         return collection_acrons
 
-    def get_collections(self):
+    def get_collections(self) -> None:
         """Save collections from Scielo in a Mongo DB collection."""
         for collection in scielo_client.collections():
             db["collections"].insert_one(collection)
         # return collection_acrons
 
-    def get_save_journals_in_collection(self, collection_acron: str):
+    def get_save_journals_in_collection(self, collection_acron: str) -> None:
         """
         Return and save journal metadata in the Mongo data base.
 
@@ -79,14 +79,14 @@ class JournalData:
         """
         Check number of journals in local database and compare with Scielo DB.
 
-        If number of journals for a collection in local database is same to SciElo database, the method returns true
+        If number of journals for a collection in local database is equal to SciElo journals database in same collection, the method returns true
         and number difference in journals.
 
         Parameters:
                 collection_acron (str): Acronym in three letters for collection.
 
         Returns:
-                (Tuple): Tuple with a bolean value and integer value.
+                (Tuple): Tuple with a boolean value and integer value.
         """
         number_local_journals = db["journals"].count_documents({})
         response = requests.get(
@@ -119,6 +119,8 @@ class JournalData:
         remote_journals = response["objects"]
         outdated_journals = {}
         issn_list = []
+        if not self.journals_in_collection_checker(collection_acron)[0]:
+            return self.update_journals(collection_acron)
         for journal in remote_journals:
             local_journal = db["journals"].find_one(
                 {"collection": collection_acron, "code": journal["code"]}
@@ -143,14 +145,18 @@ class JournalData:
         Returns:
                 (int): Returns number of modified journals.
         """
-        checker = self.journals_in_collection_checker(collection_acron)
+        checker = self.journals_in_collection_checker(
+            collection_acron
+        )  # Get tuple values as return of this method.
         if not checker[0]:
             # Retrive code from Scielo to compare with local
             response = requests.get(
-                self.UR + self.JOURNAL_ENDPOINT, {"collection": collection_acron}
+                self.URL + self.JOURNAL_ENDPOINT + "/identifiers",
+                {"collection": collection_acron},
             ).json()
 
             journals_difference = checker[1]
+            print(f"{journals_difference} to retrieve.")
             codes = [
                 journal["code"]
                 for journal in response["objects"][-journals_difference:]
@@ -180,6 +186,7 @@ class JournalData:
         return count_modifications
 
 
-# client= DataScielo();
-# returned = client.journals_in_collection_checker("col");
-# print(returned);
+if __name__ == "__main__":
+    journal_client = JournalData()
+    oudated = journal_client.compare_date("col")
+    print(oudated)
