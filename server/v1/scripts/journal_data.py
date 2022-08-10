@@ -47,7 +47,7 @@ class JournalData:
     JOURNAL_ENDPOINT = scielo_client.JOURNAL_ENDPOINT
 
     def code_collections(self) -> list:
-        """Return acrons and original names of the collections from Scielo DB."""
+        """Return acronyms and original names of the collections from Scielo DB."""
         collection_acrons = []
         for collection in scielo_client.collections():
             collection_acrons.append({collection["original_name"]: collection["acron"]})
@@ -186,14 +186,7 @@ class JournalData:
         return count_modifications
 
 
-<<<<<<< HEAD
-if __name__ == "__main__":
-    journal_client = JournalData()
-    oudated = journal_client.compare_date("col")
-    print(oudated)
-=======
 # if __name__ == "__main__":
 #     journal_client = JournalData()
 #     oudated = journal_client.compare_date("col")
 #     print(oudated)
->>>>>>> 90c6dbc4c4a787b43618950b671cf4202ca12c47
