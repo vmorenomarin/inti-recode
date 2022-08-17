@@ -53,13 +53,15 @@ class JournalData:
             collection_acrons.append({collection["original_name"]: collection["acron"]})
         return collection_acrons
 
+    def collection_checker(self):
+        """Verify for new collections in Scielo."""
+        None
+
     def get_collections(self) -> None:
         """Save collections from Scielo in a Mongo DB collection."""
         for collection in scielo_client.collections():
             db["collections"].insert_one(collection)
         # return collection_acrons
-
-
 
     def get_save_journals_in_collection(self, collection_acron: str) -> None:
         """
