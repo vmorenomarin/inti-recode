@@ -59,6 +59,8 @@ class JournalData:
             db["collections"].insert_one(collection)
         # return collection_acrons
 
+
+
     def get_save_journals_in_collection(self, collection_acron: str) -> None:
         """
         Return and save journal metadata in the Mongo data base.

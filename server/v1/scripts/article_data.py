@@ -2,8 +2,6 @@
 """Author: Víctor Moreno Marín."""
 
 # Pyhton libraries
-from re import T
-import requests
 from pymongo.mongo_client import MongoClient
 from dotenv import dotenv_values
 
@@ -39,15 +37,24 @@ class ArticleData:
                 None
 
         """
-        articles_per_journal = {}
+        # articles_per_journal = {}
 
         issn_list = []
         for journal in db["journals"].find({"collection": collection_acron}):
             issn_list.append(journal[code])
 
+        for issn in issn_list:
+            articles = scielo_client.documents(collection=collection_acron, issn=issn)
+            for article in articles:
+                if article:
+                    db["articles"].insert_one(article.data)
 
-if __name__ == "__main__":
-    article_client = ArticleData()
-    oudated = JournalData()
-    articles = scielo_client.documents(collection="ecu", issn="0120-4874", body=True)
-    counter = 0
+
+# if __name__ == "__main__":
+#     article_client = ArticleData()
+#     oudated = JournalData()
+#     articles = scielo_client.documents(collection="col", issn="0123-5923")
+#     #     print(articles)
+#     for article in articles:
+#         print(type(article.data))
+#         db["documents"].insert_one(article.data)
