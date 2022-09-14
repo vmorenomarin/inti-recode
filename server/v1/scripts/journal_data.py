@@ -4,6 +4,7 @@
 # Pyhton libraries
 from logging import log
 from sre_constants import JUMP
+from typing import Counter
 import requests
 from pymongo.mongo_client import MongoClient
 from dotenv import dotenv_values
@@ -25,7 +26,7 @@ class JournalData:
 
     Methods
     -------
-    collection_checker():
+    collections_checker():
         Verify for new collections in Scielo.
 
     save_collections():
@@ -40,7 +41,7 @@ class JournalData:
     save_journals():
         Return and save journal metadata in the Mongo data base.
 
-    journals_in_collection_checker(self, collection_acron():
+    journals_checker():
         Check number of journals in local database and compare with Scielo DB.
 
     compare_date():
@@ -52,24 +53,24 @@ class JournalData:
 
     URL = scielo_client.ARTICLEMETA_URL
     JOURNAL_ENDPOINT = scielo_client.JOURNAL_ENDPOINT
+    LIMIT = 1000
 
-    def collection_checker(self) -> bool:
-        """Verify for new collections in Scielo."""
+    def collections_checker(self) -> bool:
+        """Verify for new collections in SciELo."""
         number_local_collections = db["collections"].count_documents({})
         number_scielo_collections = len(scielo_client.collections())
         return number_local_collections == number_scielo_collections
 
     def save_collections(self) -> None:
-        """Save collections from Scielo in a Mongo DB collection."""
-        if not self.collection_checker():
+        """Save collections from SciELo in a Mongo DB collection."""
+        if not self.collections_checker():
             for collection in scielo_client.collections():
                 db["collections"].insert_one(collection)
-        print(
-            f'Collection data is updated with {db["collections"].count_documents({})}'
-        )
+                counter = db["collections"].count_documents({})
+        print(f"Collection data is updated with {counter} journals.")
 
     def get_collections(self) -> dict:
-        """Return acronyms and original names of the collections from Scielo DB."""
+        """Return acronyms and original names of the collections from SciELo DB."""
         collection_names = {}
         for collection in scielo_client.collections():
             collection_names.update({collection["original_name"]: collection["acron"]})
@@ -84,7 +85,7 @@ class JournalData:
         collections_acrons = list(collections.values())
         return collections_acrons
 
-    def journals_in_collection_checker(self, collection_acron: str) -> tuple:
+    def journals_checker(self, collection_acron: str) -> tuple:
         """
         Check number of journals in local database and compare with Scielo DB.
 
@@ -107,31 +108,7 @@ class JournalData:
         if number_local_journals == number_scielo_journals:
             return (True, 0)
         difference = number_scielo_journals - number_local_journals
-    
 
-    def save_journals(self, collection_acron: str) -> None:
-        """Save journal metadata in the Mongo data base.
-
-        Parameters:
-                colection_acron (str): Acronym in three letters for collection.
-        """
-        journals = scielo_client.journals(
-            collection_acron
-        )  # Journals is a generator object.
-        try:
-            if journals
-            print(f"Getting collections for collection with '{collection_acron}' code..")
-            for journal in journals:
-                db["journals"].insert_one(journal.data)
-            partial_count = db["journals"].count_documents({})
-            print("Journal collections was added in your local database.")
-            print(
-                f"Downloaded jounals {partial_count} for collection with '{collection_acron}' code."
-            )
-        except Exception:
-            Exception
-
-   
         return (False, difference)
 
     def compare_date(self, collection_acron: str) -> dict:
@@ -143,7 +120,8 @@ class JournalData:
         of journals to update.
 
         Returns:
-                (dict): Returns a dictrionary with issn of journals with different 'processing_date' in a collection.
+                (dict): Returns a dictrionary with issn of journals with 
+                        different 'processing_date' in a collection.
         """
         response = requests.get(
             self.URL + self.JOURNAL_ENDPOINT + "/identifiers",
@@ -152,7 +130,7 @@ class JournalData:
         remote_journals = response["objects"]
         outdated_journals = {}
         issn_list = []
-        if not self.journals_in_collection_checker(collection_acron)[0]:
+        if not self.journals_checker(collection_acron)[0]:
             return self.update_journals(collection_acron)
         for journal in remote_journals:
             local_journal = db["journals"].find_one(
@@ -178,7 +156,7 @@ class JournalData:
         Returns:
                 (int): Returns number of modified journals.
         """
-        checker = self.journals_in_collection_checker(
+        checker = self.journals_checker(
             collection_acron
         )  # Get tuple values as return of this method.
         if not checker[0]:
@@ -218,6 +196,32 @@ class JournalData:
 
         return count_modifications
 
+    def save_journals(self, collection_acron: str) -> None:
+        """Save journal metadata in the Mongo data base.
+
+        Parameters:
+                colection_acron (str): Acronym in three letters for collection.
+        """
+        journals = scielo_client.journals(
+            collection_acron
+        )  
+        try:
+            if not self.journals_checker(collection_acron)[0]:
+                db["collections"].delete_many({'collection':collection_acron})
+
+                print(f"Getting collections for collection with {collection_acron} code...")
+                for journal, controlcounter in zip(journals, range(self.LIMIT)): 
+                    # Journals is a generator object.
+                    # control_counter counts downloaded journals.
+                    db["journals"].insert_one(journal.data)
+                
+                partial_count = db["journals"].count_documents({})
+                print("Journal collections was added in your local database.")
+                print(
+                    f"Downloaded jounals {partial_count} for collection with {collection_acron} code."
+                )
+        except Exception:
+            Exception
 
 if __name__ == "__main__":
     journal_client = JournalData()

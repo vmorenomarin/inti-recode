@@ -22,7 +22,6 @@ journal_client.save_collections()
 collections = journal_client.collections_acrons()
 def get_full_journals():
     """Get full journals collecion from SciELo database."""
-
     for acron in collections:
         journal_client.save_journals(acron)
         total_journals = db['journals'].count_documents()
@@ -30,6 +29,3 @@ def get_full_journals():
 
 if __name__ == "__main__":
     get_full_journals()        
-
-
-    
