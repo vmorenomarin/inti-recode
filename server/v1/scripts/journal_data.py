@@ -2,9 +2,7 @@
 """Author: Víctor Moreno Marín."""
 
 # Pyhton libraries
-from logging import log
-from sre_constants import JUMP
-from typing import Counter
+from ast import Pass
 import requests
 from pymongo.mongo_client import MongoClient
 from dotenv import dotenv_values
@@ -120,7 +118,7 @@ class JournalData:
         of journals to update.
 
         Returns:
-                (dict): Returns a dictrionary with issn of journals with 
+                (dict): Returns a dictrionary with issn of journals with
                         different 'processing_date' in a collection.
         """
         response = requests.get(
@@ -202,19 +200,29 @@ class JournalData:
         Parameters:
                 colection_acron (str): Acronym in three letters for collection.
         """
-        journals = scielo_client.journals(
-            collection_acron
-        )  
+        journals = scielo_client.journals(collection_acron)
         try:
             if not self.journals_checker(collection_acron)[0]:
-                db["collections"].delete_many({'collection':collection_acron})
+                db["collections"].delete_many({"collection": collection_acron})
 
-                print(f"Getting collections for collection with {collection_acron} code...")
-                for journal, controlcounter in zip(journals, range(self.LIMIT)): 
-                    # Journals is a generator object.
-                    # control_counter counts downloaded journals.
-                    db["journals"].insert_one(journal.data)
-                
+                print(
+                    f"Getting collections for collection with {collection_acron} code..."
+                )
+                response = requests.get(
+                    self.JOURNAL_ENDPOINT + "/identifiers", params=collection_acron
+                ).json()
+                total_journals = response["meta"][
+                    "total"
+                ]  # Get total of journals in collection.
+
+                if total_journals < self.LIMIT:
+                    for journal in journals:
+                        db["journals"].insert_one(journal.data)
+                else:
+                    # request_counter = 0
+                    for journal, request_counter in zip(journals, range(self.LIMIT)):
+                        pass
+
                 partial_count = db["journals"].count_documents({})
                 print("Journal collections was added in your local database.")
                 print(
@@ -223,7 +231,8 @@ class JournalData:
         except Exception:
             Exception
 
-if __name__ == "__main__":
-    journal_client = JournalData()
-    oudated = journal_client.get_collections()
-    print(list(oudated.values()))
+
+# if __name__ == "__main__":
+#     journal_client = JournalData()
+#     oudated = journal_client.get_collections()
+#     print(list(oudated.values()))
