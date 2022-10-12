@@ -2,7 +2,6 @@
 """Author: Víctor Moreno Marín."""
 
 # Pyhton libraries
-from ast import Pass
 import requests
 from pymongo.mongo_client import MongoClient
 from dotenv import dotenv_values
@@ -30,7 +29,7 @@ class JournalData:
     save_collections():
         Save collections from Scielo in a Mongo DB collection.
 
-    get_collections():
+    get_collections_acron():
         Return acron and original names collections from Scielo DB.
 
     get_articles_by_collection():
@@ -67,7 +66,7 @@ class JournalData:
                 counter = db["collections"].count_documents({})
         print(f"Collection data is updated with {counter} journals.")
 
-    def get_collections(self) -> dict:
+    def get_collections_acron(self) -> dict:
         """Return acronyms and original names of the collections from SciELo DB."""
         collection_names = {}
         for collection in scielo_client.collections():
@@ -75,11 +74,8 @@ class JournalData:
         return collection_names
 
     def collections_acrons(self) -> list:
-        """Return only acronyms of the collections from local DB.
-
-        Use this method only with local saved collections.
-        """
-        collections = self.get_collections()
+        """Return only acronyms of the collections from local DB."""
+        collections = self.get_collections_acron()
         collections_acrons = list(collections.values())
         return collections_acrons
 
